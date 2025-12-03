@@ -692,36 +692,82 @@ echo "nameserver 192.234.1.203" > /etc/resolv.conf
 
 ---
 ## TESTING
-### Test 1: DHCP
+### Test 1: TESTING ROUTING / KONEKTIVITAS
+1. Test koneksi antar router utama
+Dari Osgilliath
 ```
-bashdhclient -v eth0
-ip a show eth0
+ping 192.234.1.210   # Rivendell
+ping 192.234.1.214   # Moria
+ping 192.234.1.226   # Minastir
 ```
-### Test 2: Konektivitas Internal
-```
-ping 192.234.1.202 -c 3      # Vilya (DHCP)
-ping 192.234.1.203 -c 3      # Narya (DNS)
-ping 192.234.1.218 -c 3      # IronHills
-ping 192.234.1.238 -c 3      # Palantir
-```
-<img width="756" height="826" alt="Screenshot 2025-12-03 145105" src="https://github.com/user-attachments/assets/6c3e1188-462f-44a7-bd64-0ecfab810aff" />
+<img width="382" height="337" alt="image" src="https://github.com/user-attachments/assets/70b6771f-af26-48d0-ac28-022d6cbfff8f" />
 
-### Test 3: Internet (dengan SNAT)
+2. Test koneksi dari router ke server
+Dari Moria:
 ```
-ping google.com -c 3
+ping 192.234.1.218   # IronHills
 ```
-### Test 4: Web Server
+<img width="444" height="128" alt="image" src="https://github.com/user-attachments/assets/7afe2b96-5b6d-4ca2-acfd-15769b8ddd94" />
+
+Dari Pelargir:
 ```
-curl http://192.234.1.238
+ping 192.234.1.238   # Palantir
 ```
-Atau dengan lynx
+<img width="382" height="106" alt="image" src="https://github.com/user-attachments/assets/fd1595c7-98b7-4eed-82e5-f3ce9423b773" />
+
+3. Test koneksi router ke DHCP server Vilya
+Dari Rivendell:
+```
+ping 192.234.1.202
+```
+<img width="379" height="104" alt="image" src="https://github.com/user-attachments/assets/b1a0ad73-a756-408b-981e-5457dc769cfa" />
+
+Dari Minastir:
+```
+ping 192.234.1.202
+```
+<img width="377" height="104" alt="image" src="https://github.com/user-attachments/assets/88ef6661-209e-4937-bfa2-7a34468d2044" />
+
+Dari Wilderland:
+```
+ping 192.234.1.202
+```
+<img width="375" height="104" alt="image" src="https://github.com/user-attachments/assets/e4cdfa99-f34a-4ff4-adb0-954da336599b" />
+
+4. Test koneksi dari semua subnet client ke Internet
+Dari Client (contoh Elendil / Gilgalad / Durin):
+```
+ping 8.8.8.8
+```
+<img width="352" height="95" alt="image" src="https://github.com/user-attachments/assets/39759c08-e5b0-4043-9664-3bef51e499c2" />
+
+### Test 2: TESTING DHCP SERVER + RELAY
+Di Rivendell
+```
+cat /etc/default/isc-dhcp-relay
+```
+<img width="299" height="43" alt="image" src="https://github.com/user-attachments/assets/5add35db-f003-4bf5-a87e-ded3739d1d51" />
+
+Lakukan hal yang sama untuk: `Wilderland`, `Minastir`, `AnduinBanks`.
+
+### Test 3: TESTING DNS SERVER NARYA
+```
+dig ironhills.k46.com @192.234.1.203
+dig palantir.k46.com @192.234.1.203
+```
+<img width="409" height="460" alt="image" src="https://github.com/user-attachments/assets/f95e7d2d-6504-4097-b5bf-3bb2e696f599" />
+
+### Test 4: TESTING WEB SERVER PALANTIR & IRONHILLS
+1. Test akses via IP
+Dari client:
 ```
 lynx http://192.234.1.218
 lynx http://192.234.1.238
 ```
-Test 5: DNS Resolution
+2. Test akses via domain
 ```
-dig @192.234.1.203 google.com
+lynx http://ironhills.k46.com
+lynx http://palantir.k46.com
 ```
 
 ## Misi 2 (Security Rules)
@@ -730,7 +776,19 @@ Agar jaringan aman, terapkan aturan firewall berikut.
 > 1. Agar jaringan Aliansi bisa terhubung ke luar (Valinor/Internet), konfigurasi routing menggunakan iptables.
     Syarat: Kalian TIDAK DIPERBOLEHKAN menggunakan target MASQUERADE. 
 
-(Telah dilakukan di penjelasan sebelumnya)
+Di Osgilliath:
+```
+iptables -t nat -A POSTROUTING -s 192.234.0.0/16 -o eth0 -j SNAT --to-source <IP-Osgilliath>
+```
+
+Dari client:
+```
+ping 8.8.8.8
+lynx http://google.com
+```
+<img width="347" height="86" alt="image" src="https://github.com/user-attachments/assets/669c7d98-f035-4a1c-a651-cae9c31f855d" />
+
+Jika bisa → NAT sukses.
 
 > 2. Karena Vilya (DHCP) menyimpan data vital, pastikan tidak ada perangkat lain yang bisa melakukan PING ke Vilya.
     Namun, Vilya tetap leluasa dapat mengakses/ping ke seluruh perangkat lain.
