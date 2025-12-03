@@ -618,47 +618,296 @@ dig @192.234.1.203 google.com
 ## Misi 2 (Security Rules)
 Agar jaringan aman, terapkan aturan firewall berikut. 
 
-    Agar jaringan Aliansi bisa terhubung ke luar (Valinor/Internet), konfigurasi routing menggunakan iptables.
-    
+> 1. Agar jaringan Aliansi bisa terhubung ke luar (Valinor/Internet), konfigurasi routing menggunakan iptables.
     Syarat: Kalian TIDAK DIPERBOLEHKAN menggunakan target MASQUERADE. 
 
-    Karena Vilya (DHCP) menyimpan data vital, pastikan tidak ada perangkat lain yang bisa melakukan PING ke Vilya.
-    
+(Telah dilakukan di penjelasan sebelumnya)
+
+> 2. Karena Vilya (DHCP) menyimpan data vital, pastikan tidak ada perangkat lain yang bisa melakukan PING ke Vilya.
     Namun, Vilya tetap leluasa dapat mengakses/ping ke seluruh perangkat lain.
 
-    Agar lokasi pasukan tidak bocor, hanya Vilya yang dapat mengakses Narya (DNS).
-    
+Di Osgiliath jalankan :
+
+        iptables -I FORWARD -d $VILYA -p icmp --icmp-type 8 -j REJECT
+
+Cek di Vilya (Harus berhasil) :
+
+        ping -c 3 192.234.1.238   # ping Palantir
+
+Lalu cek dari host lain (Harus gagal) :
+
+        ping -c 3 192.234.1.202
+
+Hapus aturan tadi jika sudah selesai :
+
+        iptables -D FORWARD -d 192.234.1.202 -p icmp --icmp-type 8 -j REJECT
+
+> 3. Agar lokasi pasukan tidak bocor, hanya Vilya yang dapat mengakses Narya (DNS).
     Gunakan nc (netcat) untuk memastikan akses port DNS (53) ini.
     [Hapus aturan ini setelah pengujian agar internet lancar untuk install paket]
 
-    Aktivitas mencurigakan terdeteksi di IronHills. Berdasarkan dekrit Raja, IronHills hanya boleh diakses pada Akhir Pekan (Sabtu & Minggu).
-    
+Jalankan script berikut di Narya :
+
+        #!/bin/sh
+        
+        # flush rules for DNS port specific chain
+        iptables -N DNS_ONLY 2>/dev/null || true
+        iptables -F DNS_ONLY
+        
+        # allow loopback and local
+        iptables -A DNS_ONLY -i lo -j ACCEPT
+        
+        # allow from VILYA
+        iptables -A DNS_ONLY -s $VILYA -p udp --dport 53 -j ACCEPT
+        iptables -A DNS_ONLY -s $VILYA -p tcp --dport 53 -j ACCEPT
+        
+        # drop others to port 53
+        iptables -A DNS_ONLY -p udp --dport 53 -j REJECT
+        iptables -A DNS_ONLY -p tcp --dport 53 -j REJECT
+        
+        # insert DNS_ONLY into INPUT chain before generic ACCEPTs
+        iptables -I INPUT 1 -j DNS_ONLY
+
+Cek di Vilya (harus berhasil) :
+
+        echo | nc -u 192.234.1.203 53 -w 2
+        atau
+        echo | nc 192.234.1.203 53 -w 2
+
+Di host lain cek juga (harus gagal) :
+
+        echo | nc -u 192.234.1.203 53 -w 2
+
+Untuk mengembalikan ke awal :
+
+        iptables -D INPUT -j DNS_ONLY
+        iptables -F DNS_ONLY
+        iptables -X DNS_ONLY
+
+> 4. Aktivitas mencurigakan terdeteksi di IronHills. Berdasarkan dekrit Raja, IronHills hanya boleh diakses pada Akhir Pekan (Sabtu & Minggu).
     Akses hanya diizinkan untuk Faksi Kurcaci & Pengkhianat (Durin & Khamul) serta Faksi Manusia (Elendil & Isildur).
     Karena hari ini adalah Rabu (Simulasikan waktu server), mereka harusnya tertolak. Gunakan curl untuk membuktikan blokir waktu ini.
 
-    Sembari menunggu, pasukan berlatih di server Palantir. Akses dibatasi berdasarkan ras:
-    
+Gunakan script berikut di IronHills :
+
+        #!/bin/sh
+        
+        # flush any existing time-based rules we might add
+        # (we will add specific rules for TCP port 80 and 443)
+        iptables -N ALLOW_WEEKEND 2>/dev/null || true
+        iptables -F ALLOW_WEEKEND
+        
+        # Allow on Sat & Sun only for allowed sources -> ACCEPT
+        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s $DURIN -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
+        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s $KHAMUL -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
+        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s $HUMANS -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
+        
+        # Otherwise REJECT attempts to web ports
+        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -j REJECT --reject-with tcp-reset
+        
+        # put chain at top of INPUT (so it takes precedence)
+        iptables -I INPUT 1 -j ALLOW_WEEKEND
+
+Untuk membuktikan penolakan bisa menggunakan berikut :
+
+        date -s "2025-12-03 09:00:00"
+        curl -I http://192.234.1.218 -m 5
+
+Jika ingin simulasi untuk hari Sabtu :
+
+        date -s "2025-12-06 09:00:00"
+        curl -I http://192.234.1.218 -m 5
+
+Untuk mengembalikan ke awal :
+
+        iptables -D INPUT -j ALLOW_WEEKEND
+        iptables -F ALLOW_WEEKEND
+        iptables -X ALLOW_WEEKEND
+
+> 5. Sembari menunggu, pasukan berlatih di server Palantir. Akses dibatasi berdasarkan ras:
     Faksi Elf (Gilgalad & Cirdan): Boleh akses jam 07.00 - 15.00.
     Faksi Manusia (Elendil & Isildur): Boleh akses jam 17.00 - 23.00.
     Gunakan curl untuk memastikan akses sesuai jam.
 
-    Pasukan Manusia (Elendil) diminta menguji keamanan Palantir. Lakukan simulasi port scan dengan nmap rentang port 1-100.
-    
+Run script berikut di Palantir :
+
+        #!/bin/sh
+        
+        iptables -N TIME_ACCESS 2>/dev/null || true
+        iptables -F TIME_ACCESS
+        
+        # Allow ELF 07:00-15:00 (every day)
+        iptables -A TIME_ACCESS -p tcp --dport 80 -s $ELF_NET -m time --timestart 07:00 --timestop 15:00 --kerneltz -j ACCEPT
+        
+        # Allow HUMAN 17:00-23:00
+        iptables -A TIME_ACCESS -p tcp --dport 80 -s $HUMAN_NET -m time --timestart 17:00 --timestop 23:00 --kerneltz -j ACCEPT
+        
+        # Otherwise reject to port 80
+        iptables -A TIME_ACCESS -p tcp --dport 80 -j REJECT --reject-with tcp-reset
+        
+        # Insert at top
+        iptables -I INPUT 1 -j TIME_ACCESS
+
+Untuk cek jam 9 pagi :
+
+        date -s "2025-12-06 09:00:00"
+        curl -I http://192.234.1.238 -m 5
+
+Untuk cek jam 18 malam :
+        
+        date -s "2025-12-06 18:00:00"
+        curl -I http://192.234.1.238 -m 5
+
+Untuk cek jam 1 pagi :
+
+        date -s "2025-12-06 01:00:00"
+        curl -I http://192.234.1.238 -m 5
+
+Untuk kembali ke awal :
+
+        iptables -D INPUT -j TIME_ACCESS
+        iptables -F TIME_ACCESS
+        iptables -X TIME_ACCESS
+
+> 6. Pasukan Manusia (Elendil) diminta menguji keamanan Palantir. Lakukan simulasi port scan dengan nmap rentang port 1-100.
     a. Web server harus memblokir scan port yang melebihi 15 port dalam waktu 20 detik.
     b. Penyerang yang terblokir tidak dapat melakukan ping, nc, atau curl ke Palantir.
     c. Catat log iptables dengan prefix "PORT_SCAN_DETECTED".
 
-    Hari Sabtu tiba. Akses ke IronHills dibatasi untuk mencegah overload.
-    
+Jalankan script berikut di Palantir :
+
+        #!/bin/sh
+        
+        # create chain
+        iptables -N PORTSCAN_CHECK 2>/dev/null || true
+        iptables -F PORTSCAN_CHECK
+        
+        # if IP already blacklisted (BLOCKLIST), drop everything
+        iptables -I INPUT 1 -m recent --rcheck --name PORT_BLOCK --seconds 3600 -j DROP
+        
+        # track NEW attempts to ports 1-100 and record source into RECENT list "PSCAN"
+        iptables -A PORTSCAN_CHECK -p tcp -m state --state NEW --dport 1:100 -m recent --set --name PSCAN --rsource
+        
+        # if source has hitcount >=16 within 20s, move to BLOCK list and log & drop
+        iptables -A PORTSCAN_CHECK -p tcp -m state --state NEW --dport 1:100 -m recent --update --seconds 20 --hitcount 16 --name PSCAN --rsource -j PORTSCAN_BLOCK
+        
+        # default: accept other NEW connection attempts to 1:100 (normal)
+        iptables -A PORTSCAN_CHECK -p tcp -m state --state NEW --dport 1:100 -j ACCEPT
+        
+        # chain to perform block action
+        iptables -N PORTSCAN_BLOCK 2>/dev/null || true
+        iptables -F PORTSCAN_BLOCK
+        # set into BLOCK list for long period (3600s)
+        iptables -A PORTSCAN_BLOCK -m recent --set --name PORT_BLOCK --rsource
+        # log with the required prefix
+        iptables -A PORTSCAN_BLOCK -j LOG --log-prefix "PORT_SCAN_DETECTED: " --log-level 4
+        # then drop
+        iptables -A PORTSCAN_BLOCK -j DROP
+        
+        # insert PORTSCAN_CHECK early so port scans are detected before normal accept
+        iptables -I INPUT 1 -j PORTSCAN_CHECK
+
+Di Elendil lakukan uji keamanan pada Palantir :
+
+        nmap -p1-100 192.234.1.238
+
+Setelah diblokir, laukan ping atau curl :
+
+        ping -c 3 192.234.1.238
+        curl -I http://192.234.1.238 -m 3
+
+Lalu cek log Palantir lewat :
+
+        # look for prefix in kernel log
+        dmesg | grep "PORT_SCAN_DETECTED" -n
+        atau
+        grep "PORT_SCAN_DETECTED" /var/log/syslog || true
+
+Untuk menghapus aturan :
+
+        # remove blocklist entry for attacker IP e.g. 192.234.0.55
+        iptables -m recent --remove --name PORT_BLOCK --rsource --remove 192.234.0.55 2>/dev/null || true
+        
+        # Remove all rules installed:
+        iptables -D INPUT -j PORTSCAN_CHECK
+        iptables -F PORTSCAN_CHECK
+        iptables -X PORTSCAN_CHECK
+        iptables -F PORTSCAN_BLOCK
+        iptables -X PORTSCAN_BLOCK
+
+> 7. Hari Sabtu tiba. Akses ke IronHills dibatasi untuk mencegah overload.
     Akses ke IronHills hanya boleh berasal dari 3 koneksi aktif per IP dalam waktu bersamaan.
     Lakukan uji coba beban (stress test) menggunakan curl atau ab.
 
-    Selama uji coba, terdeteksi anomali. Setiap paket yang dikirim Vilya menuju Khamul, ternyata dibelokkan oleh sihir hitam menuju IronHills.
-    
+Jalankan script berikut di IronHills :
+
+        #!/bin/sh
+        
+        # create chain
+        iptables -N CONNLIMIT_CHECK 2>/dev/null || true
+        iptables -F CONNLIMIT_CHECK
+        
+        # apply only on Sat (for test you can change date or remove time match)
+        iptables -A CONNLIMIT_CHECK -p tcp --dport 80 -m connlimit --connlimit-above 3 --connlimit-mask 32 -j REJECT --reject-with tcp-reset
+        
+        # insert into INPUT
+        iptables -I INPUT 1 -j CONNLIMIT_CHECK
+
+Untuk melakukan stress test coba lakukan berikut di Elendil :
+
+        for i in $(seq 1 6); do (curl -sS http://192.234.1.218 &); done
+
+Untuk menghapus aturan tadi, gunakan berikut di IronHills :
+
+        iptables -D INPUT -j CONNLIMIT_CHECK
+        iptables -F CONNLIMIT_CHECK
+        iptables -X CONNLIMIT_CHECK
+
+> 8. Selama uji coba, terdeteksi anomali. Setiap paket yang dikirim Vilya menuju Khamul, ternyata dibelokkan oleh sihir hitam menuju IronHills.
     Gunakan nc untuk memastikan alur pengalihan ini (Redirect trafik dari Client ke Server).
 
+Jalankan berikut di Osgiliath :
+
+        iptables -t nat -A PREROUTING -s $VILYA -d $KHAMUL_NET -p tcp --dport 80 -j DNAT --to-destination $IRON
+        iptables -I FORWARD -d $IRON -p tcp --dport 80 -j ACCEPT
+
+Lalu di IronHills cek pengalihan dengan :
+
+        nc -l 9999
+
+Lalu dari Vilya, lakukan berikut dan cek IronHills apakah terjadi pengalihan atau tidak :
+
+        echo "hello" | nc 192.234.1.193 80 -w 2
+
+Untuk mengembalikan aturan di Osgiliath :
+
+        iptables -t nat -D PREROUTING -s 192.234.1.202 -d 192.234.1.192/26 -p tcp --dport 80 -j DNAT --to-destination 192.234.1.218
+        iptables -D FORWARD -d 192.234.1.218 -p tcp --dport 80 -j ACCEPT
 
 ## Misi 3
-    Penjara Barad-dûr: Mengetahui pengkhianatan Khamul, Aliansi mengambil langkah final: Blokir semua lalu lintas masuk dan keluar dari Khamul.
+
+> 1. Penjara Barad-dûr: Mengetahui pengkhianatan Khamul, Aliansi mengambil langkah final: Blokir semua lalu lintas masuk dan keluar dari Khamul.
     Gunakan nc dan ping untuk membuktikan Khamul terisolasi total.
     Penting: Yang diblokir adalah Khamul (5 Host), BUKAN Durin (50 Host). Jangan sampai salah sasaran.
+
+Jalankan berikut di Wilderland :
+
+        iptables -I FORWARD 1 -s $KHAMUL_NET -j DROP
+        iptables -I FORWARD 1 -d $KHAMUL_NET -j DROP
+
+Lalu cek dengan berikut di node lain (Harus gagal) :
+
+        ping -c 3 192.234.1.193   
+        nc -vz 192.234.1.193 22   
+
+Di Khamul cek bahwa terblokir atau tidak :
+
+        ping -c 3 8.8.8.8         
+        nc -vz 192.234.1.238 80   
+
+Untuk mengembalikan ke aturan awal di Wilderland :
+
+        iptables -D FORWARD -s 192.234.1.192/26 -j DROP
+        iptables -D FORWARD -d 192.234.1.192/26 -j DROP
+        iptables -t nat -D PREROUTING -d 192.234.1.192/26 -j DROP
+        iptables -t nat -D PREROUTING -s 192.234.1.192/26 -j DROP
