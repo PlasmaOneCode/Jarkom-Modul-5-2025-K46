@@ -119,6 +119,10 @@ iptables -t nat -A POSTROUTING -s 192.234.0.0/16 -o eth0 -j SNAT --to-source $ET
 iptables -P FORWARD ACCEPT
 iptables-save > /etc/iptables/rules.v4
 ```
+**Jalankan Script**
+```
+chmod +x /root/osgiliath.sh && /root/osgiliath.sh
+```
 
 ---
 
@@ -154,6 +158,10 @@ OPTIONS=""' > /etc/default/isc-dhcp-relay
 
 service isc-dhcp-relay restart
 ```
+**Jalankan Script**
+```
+chmod +x /root/rivendell.sh && /root/rivendell.sh
+```
 
 ---
 
@@ -187,6 +195,10 @@ sysctl -p
 
 route add -net 192.234.1.128 netmask 255.255.255.192 gw 192.234.1.222
 route add -net 192.234.1.192 netmask 255.255.255.248 gw 192.234.1.222
+```
+**Jalankan Script**
+```
+chmod +x /root/moria.sh && /root/moria.sh
 ```
 
 ---
@@ -227,6 +239,10 @@ INTERFACES="eth0 eth1 eth2"
 OPTIONS=""' > /etc/default/isc-dhcp-relay
 
 service isc-dhcp-relay restart
+```
+**Jalankan Script**
+```
+chmod +x /root/wilderland.sh && /root/wilderland.sh
 ```
 
 ---
@@ -272,6 +288,10 @@ route add -net 192.234.1.236 netmask 255.255.255.252 gw 192.234.1.230
 
 service isc-dhcp-relay restart
 ```
+**Jalankan Script**
+```
+chmod +x /root/minastir.sh && /root/minastir.sh
+```
 
 ---
 
@@ -308,6 +328,10 @@ up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
 sysctl -p
 ```
+**Jalankan Script**
+```
+chmod +x /root/pelargir.sh && /root/pelargir.sh
+```
 
 ---
 
@@ -339,6 +363,10 @@ OPTIONS=""' > /etc/default/isc-dhcp-relay
 route add -net 192.234.1.0 netmask 255.255.255.128 gw 192.234.1.233
 
 service isc-dhcp-relay restart
+```
+**Jalankan Script**
+```
+chmod +x /root/anduinbanks.sh && /root/anduinbanks.sh
 ```
 
 ---
@@ -407,6 +435,10 @@ echo 'INTERFACESv4="eth0"' > /etc/default/isc-dhcp-server
 service isc-dhcp-server restart
 service isc-dhcp-server status
 ```
+**Jalankan Script**
+```
+chmod +x /root/vilya.sh && /root/vilya.sh
+```
 
 ---
 
@@ -446,6 +478,10 @@ EOF
 service bind9 restart
 service bind9 status
 ```
+**Jalankan Script**
+```
+chmod +x /root/narya.sh && /root/narya.sh
+```
 
 ---
 
@@ -483,6 +519,10 @@ EOF
 
 service apache2 start
 ```
+**Jalankan Script**
+```
+chmod +x /root/ironhills.sh && /root/ironhills.sh
+```
 
 ---
 
@@ -519,6 +559,10 @@ cat > /var/www/html/index.html << 'EOF'
 EOF
 
 service apache2 start
+```
+**Jalankan Script**
+```
+chmod +x /root/palantir.sh && /root/palantir.sh
 ```
 
 ---
