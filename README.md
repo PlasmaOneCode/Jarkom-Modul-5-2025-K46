@@ -59,12 +59,6 @@ Buatlah konfigurasi rute untuk menghubungkan semua subnet dengan benar. Pastikan
 | A13 | Osgiliath > Minastir > Pelargir > Palantir | 2 | /30 | 255.255.255.252 | 192.234.1.236 | 192.234.1.239 | 192.234.1.237 – 192.234.1.238 | 192.234.1.237 |
 | **Total** |  | **428** | **/23** |  |  |  |  |  |
 
-
----
-
-## POHON VLSM
-
-
 ---
 
 ## KONFIGURASI NETWORK
