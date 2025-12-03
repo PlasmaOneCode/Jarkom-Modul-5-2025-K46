@@ -457,26 +457,73 @@ up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 
 **Script**
 ```bash
-apt-get update
-apt-get install bind9 -y
+#!/bin/bash
 
+apt-get update
+apt-get install bind9 bind9-dnsutils bind9-utils -y
+
+# Direktori zona
+mkdir -p /etc/bind/k46
+mkdir -p /run/named
+chown bind:bind /run/named
+
+# ===== named.conf.options =====
 cat > /etc/bind/named.conf.options << 'EOF'
 options {
     directory "/var/cache/bind";
-    
+    pid-file "/run/named/named.pid";
+    session-keyfile "/run/named/session.key";
+
     forwarders {
         8.8.8.8;
-        8.8.4.4;
+        1.1.1.1;
     };
-    
+
     allow-query { any; };
+    allow-recursion { any; };
+
+    dnssec-validation no;
     auth-nxdomain no;
     listen-on-v6 { any; };
 };
 EOF
 
-service bind9 restart
-service bind9 status
+# ===== named.conf.local =====
+cat > /etc/bind/named.conf.local << 'EOF'
+zone "k46.com" {
+    type master;
+    file "/etc/bind/k46/k46.com";
+};
+EOF
+
+# ===== ZONE FILE =====
+cat > /etc/bind/k46/k46.com << 'EOF'
+$TTL 604800
+@       IN      SOA ns1.k46.com. admin.k46.com. (
+                        2025012102
+                        604800
+                        86400
+                        2419200
+                        604800 )
+
+@       IN      NS      ns1.k46.com.
+
+ns1     IN      A       192.234.1.203
+
+ironhills   IN  A   192.234.1.218
+palantir    IN  A   192.234.1.238
+EOF
+
+# Permission zone
+chown -R bind:bind /etc/bind/k46
+
+# ===== Start named secara manual (tanpa systemctl) =====
+echo "Starting named daemon..."
+pkill named 2>/dev/null
+
+/usr/sbin/named -u bind -c /etc/bind/named.conf
+
+echo "BIND started!"
 ```
 **Jalankan Script**
 ```
@@ -503,21 +550,52 @@ up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 echo "nameserver 192.234.1.203" > /etc/resolv.conf
 
 apt-get update
-apt-get install apache2 -y
+apt-get install nginx -y
+apt-get install lynx -y
 
-cat > /var/www/html/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>IronHills</title>
-</head>
-<body>
-    <h1>Welcome to IronHills</h1>
-</body>
-</html>
+# Matikan apache kalau ada
+service apache2 stop 2>/dev/null
+update-rc.d apache2 disable 2>/dev/null
+
+# Enable nginx service
+update-rc.d nginx defaults
+
+# Buat folder web
+mkdir -p /var/www/ironhills
+
+# Isi halaman web
+echo "<h1>WELCOME TO IRONHILLS</h1>" > /var/www/ironhills/index.html
+
+# Hapus default site
+rm -f /etc/nginx/sites-enabled/default
+rm -f /etc/nginx/sites-available/default
+
+# Buat virtual host nginx
+cat > /etc/nginx/sites-available/ironhills << 'EOF'
+server {
+    listen 80;
+    server_name ironhills.k46.com;
+
+    root /var/www/ironhills;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
 EOF
 
-service apache2 start
+# Enable site
+ln -sf /etc/nginx/sites-available/ironhills /etc/nginx/sites-enabled/
+
+# Test config
+nginx -t
+
+# Restart nginx via service
+service nginx restart
+
+echo "=== IRONHILLS WEB SERVER READY ==="
+service nginx status
 ```
 **Jalankan Script**
 ```
@@ -544,21 +622,52 @@ up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 echo "nameserver 192.234.1.203" > /etc/resolv.conf
 
 apt-get update
-apt-get install apache2 -y
+apt-get install nginx -y
+apt-get install lynx -y
 
-cat > /var/www/html/index.html << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Palantir</title>
-</head>
-<body>
-    <h1>Welcome to Palantir</h1>
-</body>
-</html>
+# Matikan apache kalau ada
+service apache2 stop 2>/dev/null
+update-rc.d apache2 disable 2>/dev/null
+
+# Enable nginx service
+update-rc.d nginx defaults
+
+# Buat folder web
+mkdir -p /var/www/palantir
+
+# Isi halaman web
+echo "<h1>WELCOME TO PALANTIR</h1>" > /var/www/palantir/index.html
+
+# Hapus default site
+rm -f /etc/nginx/sites-enabled/default
+rm -f /etc/nginx/sites-available/default
+
+# Buat virtual host nginx
+cat > /etc/nginx/sites-available/palantir << 'EOF'
+server {
+    listen 80;
+    server_name palantir.k46.com;
+
+    root /var/www/palantir;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
 EOF
 
-service apache2 start
+# Enable site
+ln -sf /etc/nginx/sites-available/palantir /etc/nginx/sites-enabled/
+
+# Test config
+nginx -t
+
+# Restart nginx via service
+service nginx restart
+
+echo "=== PALANTIR WEB SERVER READY ==="
+service nginx status
 ```
 **Jalankan Script**
 ```
