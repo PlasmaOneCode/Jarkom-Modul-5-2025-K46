@@ -789,7 +789,7 @@ Jika bisa → NAT sukses.
 
 Di Osgiliath jalankan :
 
-        iptables -I FORWARD -d $VILYA -p icmp --icmp-type 8 -j REJECT
+        iptables -I FORWARD -d 192.234.1.202 -p icmp --icmp-type 8 -j REJECT
 
 Cek di Vilya (Harus berhasil) :
 
@@ -819,8 +819,8 @@ Jalankan script berikut di Narya :
         iptables -A DNS_ONLY -i lo -j ACCEPT
         
         # allow from VILYA
-        iptables -A DNS_ONLY -s $VILYA -p udp --dport 53 -j ACCEPT
-        iptables -A DNS_ONLY -s $VILYA -p tcp --dport 53 -j ACCEPT
+        iptables -A DNS_ONLY -s 192.234.1.202 -p udp --dport 53 -j ACCEPT
+        iptables -A DNS_ONLY -s 192.234.1.202 -p tcp --dport 53 -j ACCEPT
         
         # drop others to port 53
         iptables -A DNS_ONLY -p udp --dport 53 -j REJECT
@@ -831,12 +831,14 @@ Jalankan script berikut di Narya :
 
 Cek di Vilya (harus berhasil) :
 
+        apt-get install netcat-traditional
         echo | nc -u 192.234.1.203 53 -w 2
         atau
         echo | nc 192.234.1.203 53 -w 2
 
 Di host lain cek juga (harus gagal) :
 
+        apt-get install netcat-traditional
         echo | nc -u 192.234.1.203 53 -w 2
 
 Untuk mengembalikan ke awal :
@@ -859,9 +861,9 @@ Gunakan script berikut di IronHills :
         iptables -F ALLOW_WEEKEND
         
         # Allow on Sat & Sun only for allowed sources -> ACCEPT
-        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s $DURIN -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
-        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s $KHAMUL -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
-        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s $HUMANS -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
+        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s 192.234.1.192/29 -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
+        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s 192.234.1.192/29 -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
+        iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -s 192.234.1.0/25 -m time --weekdays Sat,Sun --kerneltz -j ACCEPT
         
         # Otherwise REJECT attempts to web ports
         iptables -A ALLOW_WEEKEND -p tcp -m multiport --dports 80,443 -j REJECT --reject-with tcp-reset
@@ -898,10 +900,10 @@ Run script berikut di Palantir :
         iptables -F TIME_ACCESS
         
         # Allow ELF 07:00-15:00 (every day)
-        iptables -A TIME_ACCESS -p tcp --dport 80 -s $ELF_NET -m time --timestart 07:00 --timestop 15:00 --kerneltz -j ACCEPT
+        iptables -A TIME_ACCESS -p tcp --dport 80 -s 192.234.1.128/26 -m time --timestart 07:00 --timestop 15:00 --kerneltz -j ACCEPT
         
         # Allow HUMAN 17:00-23:00
-        iptables -A TIME_ACCESS -p tcp --dport 80 -s $HUMAN_NET -m time --timestart 17:00 --timestop 23:00 --kerneltz -j ACCEPT
+        iptables -A TIME_ACCESS -p tcp --dport 80 -s 192.234.1.0/25 -m time --timestart 17:00 --timestop 23:00 --kerneltz -j ACCEPT
         
         # Otherwise reject to port 80
         iptables -A TIME_ACCESS -p tcp --dport 80 -j REJECT --reject-with tcp-reset
@@ -1029,15 +1031,17 @@ Untuk menghapus aturan tadi, gunakan berikut di IronHills :
 
 Jalankan berikut di Osgiliath :
 
-        iptables -t nat -A PREROUTING -s $VILYA -d $KHAMUL_NET -p tcp --dport 80 -j DNAT --to-destination $IRON
-        iptables -I FORWARD -d $IRON -p tcp --dport 80 -j ACCEPT
+        iptables -t nat -A PREROUTING -s 192.234.1.202 -d 192.234.1.0/25 -p tcp --dport 80 -j DNAT --to-destination 192.234.1.218
+        iptables -I FORWARD -d 192.234.1.218 -p tcp --dport 80 -j ACCEPT
 
 Lalu di IronHills cek pengalihan dengan :
 
+        apt-get install netcat-traditional
         nc -l 9999
 
 Lalu dari Vilya, lakukan berikut dan cek IronHills apakah terjadi pengalihan atau tidak :
 
+        apt-get install netcat-traditional
         echo "hello" | nc 192.234.1.193 80 -w 2
 
 Untuk mengembalikan aturan di Osgiliath :
@@ -1053,17 +1057,19 @@ Untuk mengembalikan aturan di Osgiliath :
 
 Jalankan berikut di Wilderland :
 
-        iptables -I FORWARD 1 -s $KHAMUL_NET -j DROP
-        iptables -I FORWARD 1 -d $KHAMUL_NET -j DROP
+        iptables -I FORWARD 1 -s 192.234.1.0/25 -j DROP
+        iptables -I FORWARD 1 -d 192.234.1.0/25 -j DROP
 
 Lalu cek dengan berikut di node lain (Harus gagal) :
 
-        ping -c 3 192.234.1.193   
+        ping -c 3 192.234.1.193
+        apt-get install netcat-traditional
         nc -vz 192.234.1.193 22   
 
 Di Khamul cek bahwa terblokir atau tidak :
 
-        ping -c 3 8.8.8.8         
+        ping -c 3 8.8.8.8
+        apt-get install netcat-traditional
         nc -vz 192.234.1.238 80   
 
 Untuk mengembalikan ke aturan awal di Wilderland :
