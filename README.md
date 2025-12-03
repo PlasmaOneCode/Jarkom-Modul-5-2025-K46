@@ -582,6 +582,38 @@ echo "nameserver 192.234.1.203" > /etc/resolv.conf
 ```
 
 ---
+## TESTING
+### Test 1: DHCP
+```
+bashdhclient -v eth0
+ip a show eth0
+```
+### Test 2: Konektivitas Internal
+```
+ping 192.234.1.202 -c 3      # Vilya (DHCP)
+ping 192.234.1.203 -c 3      # Narya (DNS)
+ping 192.234.1.218 -c 3      # IronHills
+ping 192.234.1.238 -c 3      # Palantir
+```
+<img width="756" height="826" alt="Screenshot 2025-12-03 145105" src="https://github.com/user-attachments/assets/6c3e1188-462f-44a7-bd64-0ecfab810aff" />
+
+### Test 3: Internet (dengan SNAT)
+```
+ping google.com -c 3
+```
+### Test 4: Web Server
+```
+curl http://192.234.1.238
+```
+Atau dengan lynx
+```
+lynx http://192.234.1.218
+lynx http://192.234.1.238
+```
+Test 5: DNS Resolution
+```
+dig @192.234.1.203 google.com
+```
 
 ## Misi 2 (Security Rules)
 Agar jaringan aman, terapkan aturan firewall berikut. 
