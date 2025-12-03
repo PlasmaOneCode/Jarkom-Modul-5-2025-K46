@@ -135,6 +135,9 @@ auto eth1
 iface eth1 inet static
 address 192.234.1.201
 netmask 255.255.255.248
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -172,6 +175,9 @@ auto eth2
 iface eth2 inet static
 address 192.234.1.221
 netmask 255.255.255.252
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -203,6 +209,9 @@ auto eth2
 iface eth2 inet static
 address 192.234.1.193
 netmask 255.255.255.248
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -240,6 +249,9 @@ auto eth2
 iface eth2 inet static
 address 192.234.1.229
 netmask 255.255.255.252
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -286,6 +298,9 @@ auto eth3
 iface eth3 inet static
 address 192.234.1.1
 netmask 255.255.255.128
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -304,6 +319,9 @@ iface eth0 inet static
 address 192.234.1.234
 netmask 255.255.255.252
 gateway 192.234.1.233
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -335,6 +353,9 @@ iface eth0 inet static
 address 192.234.1.202
 netmask 255.255.255.248
 gateway 192.234.1.201
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -397,6 +418,9 @@ iface eth0 inet static
 address 192.234.1.203
 netmask 255.255.255.248
 gateway 192.234.1.201
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -433,6 +457,9 @@ iface eth0 inet static
 address 192.234.1.218
 netmask 255.255.255.252
 gateway 192.234.1.217
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
@@ -467,6 +494,9 @@ iface eth0 inet static
 address 192.234.1.238
 netmask 255.255.255.252
 gateway 192.234.1.237
+
+up echo "nameserver 8.8.8.8" > /etc/resolv.conf
+up echo "nameserver 1.1.1.1" >> /etc/resolv.conf
 ```
 
 **Script**
